@@ -15,8 +15,11 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
 
-public class ExampleService extends Service {
+import java.util.concurrent.atomic.AtomicBoolean;
 
+public class ExampleService extends Service {
+    static volatile AtomicBoolean serviceIsRunning = new AtomicBoolean(false);
+    static volatile Thread serviceThread;
     @Override
     public void onStart(Intent intent, int startId) {
         System.out.println("Started");
@@ -32,14 +35,6 @@ public class ExampleService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
         System.out.println("Start");
-        return START_STICKY;
-    }
-    // Constants
-    private static final int ID_SERVICE = 10129;
-    @Override
-    public void onCreate() {
-        //super.onCreate();
-        // do stuff like register for BroadcastReceiver, etc.
         System.out.println("Service Create");
         // Create the Foreground Service
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -52,16 +47,32 @@ public class ExampleService extends Service {
                 .build();
         startForeground(ID_SERVICE, notification);
         super.onCreate();
-        int loop = 100;
-        while(true){
-            System.out.println(loop);
-            loop--;
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+        serviceThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int loop = 100;
+                while(serviceIsRunning.get() && loop >0){
+                    System.out.println(loop);
+                    loop--;
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+
+                    }
+                }
             }
-        }
+        });
+        serviceThread.start();
+
+        return START_STICKY;
+    }
+    // Constants
+    private static final int ID_SERVICE = 10129;
+    @Override
+    public void onCreate() {
+        //super.onCreate();
+        // do stuff like register for BroadcastReceiver, etc.
+
     }
     @RequiresApi(Build.VERSION_CODES.O)
     private String createNotificationChannel(NotificationManager notificationManager){
@@ -73,6 +84,6 @@ public class ExampleService extends Service {
         channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
         notificationManager.createNotificationChannel(channel);
         return channelId;
-    }
+    }//TODO ADD TO GITHUB!!!!
 
 }
